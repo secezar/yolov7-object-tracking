@@ -3,7 +3,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from skimage import io
@@ -96,7 +96,7 @@ class KalmanBoxTracker(object):
         self.age = 0
         self.centroidarr = []
         CX = (bbox[0]+bbox[2])//2
-        CY = (bbox[1]+bbox[3])//2
+        CY = bbox[3]
         self.centroidarr.append((CX,CY))
         
         

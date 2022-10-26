@@ -172,7 +172,7 @@ def detect(save_img=False):
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+            txt_path = str(save_dir / 'labels' / f'{p.stem}{"" if dataset.mode == "image" else f"_{frame:08d}"}')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
                 # Rescale boxes from img_size to im0 size
@@ -191,7 +191,7 @@ def detect(save_img=False):
                 for x1,y1,x2,y2,conf,detclass in det.cpu().detach().numpy():
                     dets_to_sort = np.vstack((dets_to_sort, 
                                 np.array([x1, y1, x2, y2, conf, detclass])))
-                
+
                 # Run SORT
                 tracked_dets = sort_tracker.update(dets_to_sort)
                 tracks =sort_tracker.getTrackers()
@@ -214,7 +214,15 @@ def detect(save_img=False):
                     categories = tracked_dets[:, 4]
                     draw_boxes(im0, bbox_xyxy, identities, categories, names)
                 #........................................................
-                
+
+                for track, d in zip(tracks, dets_to_sort):
+                    *xyxy, conf, cls = d
+                    if save_txt:  # Write to file
+                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        line = (cls, track.id, *xywh, conf) if opt.save_conf else (cls, track.id, *xywh)  # label format
+                        with open(txt_path + '.txt', 'a') as f:
+                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
+
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
 
