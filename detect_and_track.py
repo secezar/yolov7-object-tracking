@@ -41,23 +41,26 @@ def bbox_rel(*xyxy):
 
 
 """Function to Draw Bounding boxes"""
-def draw_boxes(img, bbox, identities=None, categories=None, names=None,offset=(0, 0)):
-    for i, box in enumerate(bbox):
-        x1, y1, x2, y2 = [int(i) for i in box]
-        x1 += offset[0]
-        x2 += offset[0]
-        y1 += offset[1]
-        y2 += offset[1]
-        cat = int(categories[i]) if categories is not None else 0
-        id = int(identities[i]) if identities is not None else 0
-        data = (int((box[0]+box[2])/2),(int((box[1]+box[3])/2)))
-        label = str(id) + ":"+ names[cat]
-        (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
-        cv2.rectangle(img, (x1, y1), (x2, y2), (255,0,20), 2)
-        cv2.rectangle(img, (x1, y1 - 20), (x1 + w, y1), (255,144,30), -1)
-        cv2.putText(img, label, (x1, y1 - 5),cv2.FONT_HERSHEY_SIMPLEX, 
-                    0.6, [255, 255, 255], 1)
-        # cv2.circle(img, data, 6, color,-1)
+def draw_boxes(img, bbox, img_label_path, identities=None, categories=None, names=None,offset=(0, 0)):
+    img_w, img_h, _ = img.shape
+    with open(f"{img_label_path}.txt", "a") as label_file:
+        for i, box in enumerate(bbox):
+            x1, y1, x2, y2 = [int(i) for i in box]
+            x1 += offset[0]
+            x2 += offset[0]
+            y1 += offset[1]
+            y2 += offset[1]
+            cat = int(categories[i]) if categories is not None else 0
+            id = int(identities[i]) if identities is not None else 0
+            data = (int((box[0]+box[2])/2),(int((box[1]+box[3])/2)))
+            label = str(id) + ":" + names[cat]
+            (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+            cv2.rectangle(img, (x1, y1), (x2, y2), (255,0,20), 2)
+            cv2.rectangle(img, (x1, y1 - 20), (x1 + w, y1), (255,144,30), -1)
+            cv2.putText(img, label, (x1, y1 - 5),cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6, [255, 255, 255], 1)
+            label_file.write(f"{cat} {id} {x1/img_w:.6f} {y1/img_h:.6f} {w/img_w:.6f} {h/img_h:.6f}\n")
+            # cv2.circle(img, data, 6, color,-1)
     return img
 #..............................................................................
 
@@ -212,16 +215,9 @@ def detect(save_img=False):
                     bbox_xyxy = tracked_dets[:,:4]
                     identities = tracked_dets[:, 8]
                     categories = tracked_dets[:, 4]
-                    draw_boxes(im0, bbox_xyxy, identities, categories, names)
+                    draw_boxes(im0, bbox_xyxy, txt_path, identities, categories, names)
                 #........................................................
 
-                for track, d in zip(tracks, dets_to_sort):
-                    *xyxy, conf, cls = d
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, track.id, *xywh, conf) if opt.save_conf else (cls, track.id, *xywh)  # label format
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
